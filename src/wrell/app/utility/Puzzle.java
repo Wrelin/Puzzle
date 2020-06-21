@@ -4,20 +4,19 @@ import wrell.app.utility.interfaces.Validatable;
 import wrell.app.utility.side.SideDirection;
 
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class Puzzle implements Validatable {
     private static final int NEED_CORNERS = 4;
     protected List<Part> parts;
-    public Part[][] grid;
+    private List<Stack<Part>> stacks;
+    private Part[][] grid;
     protected int perimeter;
     protected int area;
     protected int width;
     protected int height;
-    private List<String> variants = new ArrayList<>();
+    final private List<String> variants = new ArrayList<>();
 
     public Puzzle(List<Part> parts) {
         this.parts = parts;
@@ -28,8 +27,11 @@ public class Puzzle implements Validatable {
     public static Puzzle getByArray(String[] array) {
         if (array.length < NEED_CORNERS || BigInteger.valueOf(array.length).isProbablePrime(1))
             throw new RuntimeException("Incorrect array size");
-        var parts = Arrays.stream(array).map(Part::getByString).collect(Collectors.toList());
+        var parts = Arrays.stream(array)
+                .map(Part::getByString)
+                .collect(Collectors.toList());
         return new Puzzle(parts);
+
     }
 
     private void validate() {
@@ -48,7 +50,20 @@ public class Puzzle implements Validatable {
     }
 
     public boolean check() {
-        setToGrid(0, 0, parts);
+        stacks = new ArrayList<>();
+        first:
+        for (Part part: parts) {
+            for (Stack<Part> stack: stacks) {
+                if (stack.peek().equals(part)) {
+                    stack.push(part);
+                    continue first;
+                }
+            }
+            var newStack = new Stack<Part>();
+            newStack.push(part);
+            stacks.add(newStack);
+        }
+        setToGrid(0, 0);
         return !variants.isEmpty();
     }
 
@@ -56,27 +71,26 @@ public class Puzzle implements Validatable {
         return variants;
     }
 
-    protected void setToGrid(int x, int y, List<Part> parts) {
-        for (Part part : parts) {
-            for (int i = 0; i < SideDirection.values().length; i++) {
+    protected void setToGrid(int x, int y) {
+        for (Stack<Part> stack : stacks) {
+            if (stack.isEmpty()) continue;
+
+            var part = stack.peek();
+            for (SideDirection direction : SideDirection.values()) {
                 if (checkNeighborsFit(x, y, part)) {
                     grid[y][x] = part;
                     if (x + 1 == width && y + 1 == height) {
                         variants.add(drawGrid());
                         return;
                     }
-                    setToGrid(x + 1 < width ? x + 1 : 0, x + 1 < width ? y : y + 1, partsWithoutThis(parts, part));
+                    stack.pop();
+                    setToGrid(x + 1 < width ? x + 1 : 0, x + 1 < width ? y : y + 1);
+                    stack.push(part);
                     if (x == 0 && y == 0) return;
                 }
                 part.clockwise();
             }
         }
-    }
-
-    protected List<Part> partsWithoutThis(List<Part> parts, Part part) {
-        var cloneParts = parts.stream().map(Part::clone).collect(Collectors.toList());
-        cloneParts.remove(parts.indexOf(part));
-        return cloneParts;
     }
 
     protected boolean checkNeighborsFit(int x, int y, Part part) {

@@ -7,6 +7,7 @@ import wrell.app.utility.side.SideType;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class Part implements Validatable, Cloneable {
@@ -100,8 +101,24 @@ public class Part implements Validatable, Cloneable {
     }
 
     @Override
-    public Part clone() {
-        return new Part(sides.stream().map(Side::clone).collect(Collectors.toList()), id, isCorner, isBoard);
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Part part = (Part) o;
+        for (SideDirection direction: SideDirection.values()) {
+            if (this.getSideByDirection(SideDirection.NORTH).getType().equals(part.getSideByDirection(SideDirection.NORTH).getType())
+            && this.getSideByDirection(SideDirection.EAST).getType().equals(part.getSideByDirection(SideDirection.EAST).getType())
+            && this.getSideByDirection(SideDirection.SOUTH).getType().equals(part.getSideByDirection(SideDirection.SOUTH).getType())
+            && this.getSideByDirection(SideDirection.WEST).getType().equals(part.getSideByDirection(SideDirection.WEST).getType()))
+                return true;
+            part.clockwise();
+        }
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, sides, isCorner, isBoard);
     }
 
     protected boolean isCorrectCorner() {
