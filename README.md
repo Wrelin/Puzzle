@@ -1,1 +1,2 @@
-Puzzle validator v1
+Puzzle validator v2
+with stacks
